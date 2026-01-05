@@ -9,7 +9,10 @@ import React, {
 } from "react";
 import Image from "next/image";
 import {
+  Image as ImageIcon,
   Lock,
+  Send,
+  SmilePlus,
   UserPlus,
   Settings,
   MoreVertical,
@@ -19,20 +22,32 @@ import {
   Pin,
   Bell,
   Moon,
+  Sun,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { EncryptedText } from "@/components/ui/encrypted-text";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { BackgroundBeams } from "@/components/ui/background-beams";
 import { cn } from "@/lib/utils";
-import MessageInput from "@/components/messageInput";
-import Messages from "@/components/messges";
 
 type Chat = {
   id: string;
@@ -46,7 +61,7 @@ type Chat = {
   lastMessage?: string;
 };
 
-export type Message =
+type Message =
   | {
       id: string;
       from: "me" | "them";
@@ -206,7 +221,7 @@ export default function DashboardPage() {
     ],
     c_2: [
       {
-        id: "m_5",
+        id: "m_3",
         from: "them",
         kind: "text",
         text: "Reminder: standup in 10 mins.",
@@ -217,7 +232,7 @@ export default function DashboardPage() {
     ],
     c_3: [
       {
-        id: "m_6",
+        id: "m_4",
         from: "them",
         kind: "text",
         text: "How can we help you today?",
@@ -271,8 +286,6 @@ export default function DashboardPage() {
         kind: "sticker",
         sticker,
         at: nowTime(),
-        senderName: "You",
-        senderAvatar: "YU",
       };
       setMessages((prev) => ({
         ...prev,
@@ -298,8 +311,6 @@ export default function DashboardPage() {
         kind: "text",
         text,
         at: nowTime(),
-        senderName: "You",
-        senderAvatar: "YU",
       });
     }
 
@@ -312,8 +323,6 @@ export default function DashboardPage() {
         objectUrl,
         alt: file.name,
         at: nowTime(),
-        senderName: "You",
-        senderAvatar: "YU",
       });
     }
 
@@ -358,17 +367,12 @@ export default function DashboardPage() {
         isOnline: false,
       };
       setChats((prev) => [chat, ...prev]);
-      setMessages((prev) => ({ ...prev, [id]: [] }));
-      setActiveChatId(id);
-      setStartChatWith("");
-    },
-    [startChatWith]
-  );
+      setMessages((prev) => ({ ...prev, [ bg-background">
+      <BackgroundBeams className="opacity-20" />
 
-  return (
-    <div className="relative h-screen overflow-hidden bg-background">
-      <div className="relative flex h-full w-full">
-        <div className="hidden h-full w-20 border-r bg-card/50 backdrop-blur-sm lg:flex lg:flex-col lg:items-center lg:gap-4 lg:py-4">
+      <div className="relative mx-auto flex min-h-screen w-full max-w-7xl">
+        {/* Sidebar */}
+        <div className="hidden w-20 border-r bg-card/50 backdrop-blur-sm lg:flex lg:flex-col lg:items-center lg:gap-4 lg:py-4">
           <div className="flex size-12 items-center justify-center rounded-xl bg-primary text-primary-foreground font-bold text-lg">
             W
           </div>
@@ -382,8 +386,8 @@ export default function DashboardPage() {
         </div>
 
         {/* Chat List */}
-        <div className="flex h-full w-full flex-col border-r bg-card/30 backdrop-blur-sm md:w-96">
-          <div className="flex h-16 shrink-0 items-center justify-between border-b px-4">
+        <div className="w-full border-r bg-card/30 backdrop-blur-sm md:w-96">
+          <div className="flex h-16 items-center justify-between border-b px-4">
             <h1 className="text-xl font-bold">WhaTube</h1>
             <div className="flex items-center gap-1">
               <Button variant="ghost" size="icon" className="size-9">
@@ -414,7 +418,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="shrink-0 border-b p-3">
+          <div className="border-b p-3">
             <Input
               placeholder="Search chats..."
               value={search}
@@ -423,7 +427,7 @@ export default function DashboardPage() {
             />
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          <div className="h-[calc(100vh-9rem)] overflow-y-auto">
             {filteredChats.map((c) => {
               const active = c.id === activeChatId;
               return (
@@ -477,34 +481,10 @@ export default function DashboardPage() {
                     </div>
                   </div>
                 </button>
-              );
-            })}
-          </div>
-
-          <div className="shrink-0 border-t p-3">
-            <form onSubmit={startChat} className="flex gap-2">
-              <Input
-                placeholder="Start new chat..."
-                value={startChatWith}
-                onChange={(e) => setStartChatWith(e.target.value)}
-                className="h-9"
-              />
-              <Button
-                type="submit"
-                size="icon"
-                className="size-9 shrink-0"
-                aria-label="Start chat"
-              >
-                <UserPlus className="size-4" />
-              </Button>
-            </form>
-          </div>
-        </div>
-
         {/* Main Chat Area */}
-        <div className="flex h-full flex-1 flex-col bg-background/50 backdrop-blur-sm">
+        <div className="flex flex-1 flex-col bg-background/50 backdrop-blur-sm">
           {/* Chat Header */}
-          <div className="flex h-16 shrink-0 items-center justify-between border-b bg-card/50 px-4 backdrop-blur-sm">
+          <div className="flex h-16 items-center justify-between border-b bg-card/50 px-4 backdrop-blur-sm">
             <div className="flex items-center gap-3">
               <div className="relative">
                 <div className="flex size-10 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-500 font-semibold text-white text-sm">
@@ -554,24 +534,263 @@ export default function DashboardPage() {
           </div>
 
           {/* Messages */}
-          <Messages
-            messagesEndRef={messagesEndRef}
-            activeMessages={activeMessages}
-          />
+          <div className="flex-1 overflow-y-auto p-4">
+            {activeMessages.length === 0 ? (
+              <div className="flex h-full items-center justify-center">
+                <div className="text-center">
+                  <div className="mb-3 flex size-16 items-center justify-center rounded-full bg-primary/10 mx-auto">
+                    <Lock className="size-8 text-primary" />
+                  </div>
+                  <h3 className="mb-2 font-semibold text-lg">
+                    End-to-End Encrypted
+                  </h3>
+                  <p className="max-w-md text-muted-foreground text-sm">
+                    Messages are secured with end-to-end encryption. Start the
+                    conversation now.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="mx-auto max-w-4xl space-y-4">
+                {activeMessages.map((m, idx) => {
+                  const mine = m.from === "me";
+                  const prevMsg = idx > 0 ? activeMessages[idx - 1] : null;
+                  const showAvatar =
+                    !mine && (!prevMsg || prevMsg.from !== m.from);
+
+                  return (
+                    <div
+                      key={m.id}
+                      className={cn(
+                        "flex gap-2",
+                        mine ? "flex-row-reverse" : "flex-row",
+                        !showAvatar && !mine && "ml-10"
+                      )}
+                    >
+                      {!mine && showAvatar && (
+                        <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-500 font-semibold text-white text-xs">
+                          {m.senderAvatar}
+                        </div>
+                      )}
+                      {!mine && !showAvatar && <div className="w-8 shrink-0" />}
+
+                      <div
+                        className={cn(
+                          "group relative max-w-[65%]",
+                          mine && "flex flex-col items-end"
+                        )}
+                      >
+                        {!mine && showAvatar && (
+                          <div className="mb-1 ml-1 font-medium text-xs text-muted-foreground">
+                            {m.senderName}
+                          </div>
+                        )}
+                        <div
+                          className={cn(
+                            "rounded-2xl px-4 py-2 shadow-sm",
+                            mine
+                              ? "rounded-br-md bg-primary text-primary-foreground"
+                              : "rounded-bl-md bg-card"
+                          )}
+                        >
+                          {m.kind === "text" && (
+                            <div className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">
+                              {m.text}
+                            </div>
+                          )}
+                          {m.kind === "sticker" && (
+                            <div className="text-5xl leading-none">
+                              {m.sticker}
+                            </div>
+                          )}
+                          {m.kind === "image" && (
+                            <div className="flex flex-col gap-2">
+                              <Image
+                                src={m.objectUrl}
+                                alt={m.alt}
+                                width={640}
+                                height={640}
+                                unoptimized
+                                className="max-h-80 w-auto rounded-xl"
+                                sizes="(max-width: 768px) 80vw, 500px"
+                              />
+                              <div
+                                className={cn(
+                                  "text-xs",
+                                  mine
+                                    ? "text-primary-foreground/70"
+                                    : "text-muted-foreground"
+                                )}
+                              >
+                                {m.alt}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        <div
+                          className={cn(
+                            "mt-1 px-1 text-[11px] text-muted-foreground",
+                            mine && "text-right"
+                          )}
+                        >
+                          {m.at}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+                <div ref={messagesEndRef} />
+              </div>
+            )}
+          </div>
 
           {/* Message Input */}
-          <MessageInput
-            fileInputRef={fileInputRef}
-            onPickFiles={onPickFiles}
-            pendingFiles={pendingFiles}
-            removePendingFile={removePendingFile}
-            STICKERS={STICKERS}
-            sendSticker={sendSticker}
-            send={send}
-            draft={draft}
-            setDraft={setDraft}
-            openFilePicker={openFilePicker}
-          />
+          <div className="border-t bg-card/50 p-4 backdrop-blur-sm">
+            {pendingFiles.length > 0 && (
+              <div className="mb-3 flex flex-wrap gap-2">
+                {pendingFiles.map((f, idx) => (
+                  <div
+                    key={`${f.name}_${idx}`}
+                    className="flex items-center gap-2 rounded-lg border bg-background px-3 py-2"
+                  >
+                    <ImageIcon className="size-4 text-muted-foreground" />
+                    <span className="max-w-40 truncate text-sm">{f.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => removePendingFile(idx)}
+                      className="ml-1 text-muted-foreground hover:text-foreground"
+                      aria-label="Remove image"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="flex items-end gap-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={(e) => onPickFiles(e.target.files)}
+              />
+
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={openFilePicker}
+                className="size-10 shrink-0"
+                aria-label="Attach image"
+              >
+                <ImageIcon className="size-5" />
+              </Button>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="size-10 shrink-0"
+                    aria-label="Stickers"
+                  >
+                    <SmilePlus className="size-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-56">
+                  <DropdownMenuLabel>Send Sticker</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <div className="grid grid-cols-4 gap-1 p-2">
+                    {STICKERS.map((s) => (
+                      <button
+                        key={s.value}
+                        type="button"
+                        onClick={() => {
+                          if (draft.trim().length > 0) {
+                            setDraft(
+                              (prev) =>
+                                `${prev}${
+                                  prev.endsWith(" ") || prev.length === 0
+                                    ? ""
+                                    : " "
+                                }${s.value} `
+                            );
+                            return;
+                          }
+                          sendSticker(s.value);
+                        }}
+                        className="flex size-12 items-center justify-center rounded-lg text-2xl transition-colors hover:bg-accent"
+                        title={s.label}
+                      >
+                        {s.value}
+                      </button>
+                    ))}
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <div className="flex-1">
+                <Textarea
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                  placeholder="Type a message..."
+                  className="min-h-[44px] max-h-32 resize-none rounded-2xl"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      send();
+                    }
+                  }}
+                />
+              </div>
+
+              <Button
+                type="button"
+                onClick={send}
+                size="icon"
+                className="size-10 shrink-0 rounded-full"
+                aria-label="Send"
+              >
+                <Send className="size-5" />
+              </Button>
+            </div>
+          </div        >
+                          <span className="text-lg">{s.value}</span>
+                          <span className="text-sm">{s.label}</span>
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+
+                  <div className="flex-1">
+                    <Textarea
+                      value={draft}
+                      onChange={(e) => setDraft(e.target.value)}
+                      placeholder="Write a message…"
+                      className="min-h-10"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          send();
+                        }
+                      }}
+                    />
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      Press Enter to send • Shift+Enter for new line
+                    </div>
+                  </div>
+
+                  <Button type="button" onClick={send} aria-label="Send">
+                    <Send className="size-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardFooter>
+          </Card>
         </div>
       </div>
     </div>
