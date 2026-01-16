@@ -13,12 +13,20 @@ export const AuthApi = {
       throw new Error(handleApiError(error as ApiError));
     }
   },
-  register: async function (username: string, email: string, password: string) {
+  register: async function (
+    username: string,
+    email: string,
+    password: string,
+    name: string,
+    dob: string
+  ) {
     try {
       const { data } = await publicApiClient.post("/auth/register", {
         username,
         email,
         password,
+        name,
+        dob,
       });
       return data;
     } catch (error) {

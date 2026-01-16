@@ -33,7 +33,6 @@ const Login = () => {
       console.log(data);
       setSuccess("Login successful! Redirecting to dashboard...");
 
-
       setTimeout(() => {
         window.location.href = "/dashboard";
       }, 1000);

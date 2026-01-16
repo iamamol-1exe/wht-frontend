@@ -28,53 +28,17 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import MessageInput from "@/components/messageInput";
 import Messages from "@/components/messges";
-
-type Chat = {
-  id: string;
-  title: string;
-  subtitle?: string;
-  lastActiveAt: string;
-  avatar: string;
-  isOnline: boolean;
-  unreadCount?: number;
-  isPinned?: boolean;
-  lastMessage?: string;
-};
-
-export type Message =
-  | {
-      id: string;
-      from: "me" | "them";
-      kind: "text";
-      text: string;
-      at: string;
-      senderName?: string;
-      senderAvatar?: string;
-    }
-  | {
-      id: string;
-      from: "me" | "them";
-      kind: "image";
-      alt: string;
-      objectUrl: string;
-      at: string;
-      senderName?: string;
-      senderAvatar?: string;
-    }
-  | {
-      id: string;
-      from: "me" | "them";
-      kind: "sticker";
-      sticker: string;
-      at: string;
-      senderName?: string;
-      senderAvatar?: string;
-    };
+import { useTheme } from "next-themes";
+import { Friends, Message } from "@/types/chats";
+import SquadModal from "@/components/friendslist";
 
 const STICKERS: Array<{ label: string; value: string }> = [
   { label: "Wave", value: "👋" },
@@ -105,66 +69,17 @@ export default function DashboardPage() {
   const [search, setSearch] = useState("");
   const [startChatWith, setStartChatWith] = useState("");
 
-  const [chats, setChats] = useState<Chat[]>(() => [
-    {
-      id: "c_1",
-      title: "Aarav Sharma",
-      subtitle: "typing...",
-      lastActiveAt: "now",
-      avatar: "AS",
-      isOnline: true,
-      unreadCount: 2,
-      isPinned: true,
-      lastMessage: "Hey! This chat is end-to-end encrypted.",
-    },
-    {
-      id: "c_2",
-      title: "Dev Team",
-      subtitle: "3 members",
-      lastActiveAt: "2m",
-      avatar: "DT",
-      isOnline: true,
-      unreadCount: 5,
-      isPinned: true,
-      lastMessage: "Reminder: standup in 10 mins.",
-    },
-    {
-      id: "c_3",
-      title: "Support",
-      subtitle: "last seen 1h ago",
-      lastActiveAt: "1h",
-      avatar: "SU",
-      isOnline: false,
-      lastMessage: "How can we help you today?",
-    },
-    {
-      id: "c_4",
-      title: "Priya Patel",
-      subtitle: "online",
-      lastActiveAt: "5m",
-      avatar: "PP",
-      isOnline: true,
-      lastMessage: "Thanks for the update!",
-    },
-    {
-      id: "c_5",
-      title: "Project Alpha",
-      subtitle: "12 members",
-      lastActiveAt: "15m",
-      avatar: "PA",
-      isOnline: true,
-      unreadCount: 8,
-      lastMessage: "@everyone New deployment is live",
-    },
-  ]);
+  const [friends, setFriends] = useState<Friends[]>(() => []);
+
   const [activeChatId, setActiveChatId] = useState<string>("c_1");
   const activeChat = useMemo(
-    () => chats.find((c) => c.id === activeChatId) ?? chats[0],
-    [activeChatId, chats]
+    () => friends.find((c) => c.id === activeChatId) ?? friends[0],
+    [activeChatId, friends]
   );
 
   const [draft, setDraft] = useState<string>("");
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [isSquadModalOpen, setIsSquadModalOpen] = useState(false);
   const [messages, setMessages] = useState<Record<string, Message[]>>(() => ({
     c_1: [
       {
@@ -232,13 +147,13 @@ export default function DashboardPage() {
 
   const filteredChats = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return chats;
-    return chats.filter(
+    if (!q) return friends;
+    return friends.filter(
       (c) =>
         c.title.toLowerCase().includes(q) ||
         (c.subtitle ?? "").toLowerCase().includes(q)
     );
-  }, [chats, search]);
+  }, [friends, search]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -349,7 +264,7 @@ export default function DashboardPage() {
         .join("")
         .toUpperCase()
         .slice(0, 2);
-      const chat: Chat = {
+      const chat: Friends = {
         id,
         title: target,
         subtitle: "New chat",
@@ -357,13 +272,23 @@ export default function DashboardPage() {
         avatar: initials,
         isOnline: false,
       };
-      setChats((prev) => [chat, ...prev]);
+      setFriends((prev) => [chat, ...prev]);
       setMessages((prev) => ({ ...prev, [id]: [] }));
       setActiveChatId(id);
       setStartChatWith("");
     },
     [startChatWith]
   );
+
+  const { setTheme } = useTheme();
+
+  // useEffect(() => {
+  //   const getFriends = async () => {
+  //     const friendsList = await chatApi.getFriends();
+  //     setChats(friendsList);
+  //   };
+  //   getFriends();
+  // }, []);
 
   return (
     <div className="relative h-screen overflow-hidden bg-background">
@@ -373,6 +298,14 @@ export default function DashboardPage() {
             W
           </div>
           <div className="flex-1" />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-xl"
+            onClick={() => setIsSquadModalOpen(true)}
+          >
+            <UserPlus className="size-5" />
+          </Button>
           <Button variant="ghost" size="icon" className="rounded-xl">
             <Settings className="size-5" />
           </Button>
@@ -405,10 +338,23 @@ export default function DashboardPage() {
                     Notifications
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem>
-                    <Moon className="mr-2 size-4" />
-                    Dark Mode
-                  </DropdownMenuItem>
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger>
+                      <Moon className="mr-2 size-4" />
+                      Theme
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuSubContent>
+                      <DropdownMenuItem onClick={() => setTheme("light")}>
+                        Light
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setTheme("dark")}>
+                        Dark
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setTheme("system")}>
+                        System
+                      </DropdownMenuItem>
+                    </DropdownMenuSubContent>
+                  </DropdownMenuSub>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -479,25 +425,6 @@ export default function DashboardPage() {
                 </button>
               );
             })}
-          </div>
-
-          <div className="shrink-0 border-t p-3">
-            <form onSubmit={startChat} className="flex gap-2">
-              <Input
-                placeholder="Start new chat..."
-                value={startChatWith}
-                onChange={(e) => setStartChatWith(e.target.value)}
-                className="h-9"
-              />
-              <Button
-                type="submit"
-                size="icon"
-                className="size-9 shrink-0"
-                aria-label="Start chat"
-              >
-                <UserPlus className="size-4" />
-              </Button>
-            </form>
           </div>
         </div>
 
@@ -574,6 +501,11 @@ export default function DashboardPage() {
           />
         </div>
       </div>
+
+      <SquadModal
+        isOpen={isSquadModalOpen}
+        onOpenChange={setIsSquadModalOpen}
+      />
     </div>
   );
 }
