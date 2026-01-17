@@ -1,5 +1,9 @@
 import { ApiError } from "@/types/apiTypes";
-import { handleApiError, publicApiClient } from "../utils/axios.config";
+import {
+  apiClient,
+  handleApiError,
+  publicApiClient,
+} from "../utils/axios.config";
 
 export const AuthApi = {
   login: async function (email: string, password: string) {
@@ -28,6 +32,14 @@ export const AuthApi = {
         name,
         dob,
       });
+      return data;
+    } catch (error) {
+      throw new Error(handleApiError(error as ApiError));
+    }
+  },
+  logout: async function () {
+    try {
+      const { data } = await apiClient.get("/auth/logout");
       return data;
     } catch (error) {
       throw new Error(handleApiError(error as ApiError));

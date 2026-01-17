@@ -1,5 +1,4 @@
 "use client";
-
 import React, {
   useCallback,
   useEffect,
@@ -7,7 +6,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import Image from "next/image";
+import Link from "next/link";
 import {
   Lock,
   UserPlus,
@@ -39,6 +38,10 @@ import Messages from "@/components/messges";
 import { useTheme } from "next-themes";
 import { Friends, Message } from "@/types/chats";
 import SquadModal from "@/components/friendslist";
+import { chatApi } from "@/api/chat.api";
+import { UserData } from "@/types/user";
+import NotificationModal from "@/components/NotificationModal";
+import { socket } from "@/utils/socket";
 
 const STICKERS: Array<{ label: string; value: string }> = [
   { label: "Wave", value: "👋" },
@@ -68,6 +71,8 @@ export default function DashboardPage() {
 
   const [search, setSearch] = useState("");
   const [startChatWith, setStartChatWith] = useState("");
+  const [currentUser, setCurrentUser] = useState<UserData | null>(null);
+  const [isNotification, setIsNotification] = useState<boolean>(false);
 
   const [friends, setFriends] = useState<Friends[]>(() => []);
 
@@ -282,13 +287,58 @@ export default function DashboardPage() {
 
   const { setTheme } = useTheme();
 
-  // useEffect(() => {
-  //   const getFriends = async () => {
-  //     const friendsList = await chatApi.getFriends();
-  //     setChats(friendsList);
-  //   };
-  //   getFriends();
-  // }, []);
+  const getCurrentUser = async () => {
+    try {
+      const response = (await chatApi.getCurrentUser()) as { data: UserData };
+      setCurrentUser(response.data);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const getFriends = async () => {
+    try {
+      const { data } = (await chatApi.getAllFriends()) as { data: any };
+      const Friend: Friends[] = data.map((friend: UserData) => {
+        const initials =
+          friend.name
+            ?.split(" ")
+            .map((n) => n[0])
+            .join("")
+            .toUpperCase()
+            .slice(0, 2) || "?";
+        return {
+          id: friend._id,
+          title: friend.name,
+          subtitle: friend.username,
+          avatar: initials,
+          isOnline: false,
+          unreadCount: 0,
+        };
+      });
+      console.log(Friend);
+      setFriends(Friend);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+  useEffect(() => {
+    getCurrentUser();
+    getFriends();
+  }, []);
+
+  useEffect(() => {
+    if (currentUser) {
+      socket.emit("join", { userId: currentUser._id });
+      console.log("try");
+    }
+    socket.on("notification", (data) => {
+      console.log("notification", data);
+    });
+    return () => {
+      socket.off("notification");
+    };
+  }, [currentUser]);
 
   return (
     <div className="relative h-screen overflow-hidden bg-background">
@@ -309,9 +359,11 @@ export default function DashboardPage() {
           <Button variant="ghost" size="icon" className="rounded-xl">
             <Settings className="size-5" />
           </Button>
-          <div className="flex size-10 items-center justify-center rounded-full bg-gradient-to-br from-purple-500 to-pink-500 text-white font-semibold text-sm">
-            YU
-          </div>
+          <Link href="/profile">
+            <div className="flex size-10 items-center justify-center rounded-full bg-gradient-to-br from-purple-500 to-pink-500 text-white font-semibold text-sm cursor-pointer hover:scale-110 transition-transform">
+              {currentUser?.name?.[0]?.toUpperCase() || "U"}
+            </div>
+          </Link>
         </div>
 
         {/* Chat List */}
@@ -333,7 +385,12 @@ export default function DashboardPage() {
                     <Settings className="mr-2 size-4" />
                     Settings
                   </DropdownMenuItem>
-                  <DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={(e: React.FormEvent) => {
+                      e.stopPropagation();
+                      setIsNotification(true);
+                    }}
+                  >
                     <Bell className="mr-2 size-4" />
                     Notifications
                   </DropdownMenuItem>
@@ -505,6 +562,10 @@ export default function DashboardPage() {
       <SquadModal
         isOpen={isSquadModalOpen}
         onOpenChange={setIsSquadModalOpen}
+      />
+      <NotificationModal
+        isOpen={isNotification}
+        onOpenChange={setIsNotification}
       />
     </div>
   );

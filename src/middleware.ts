@@ -10,11 +10,14 @@ function isAuthed(req: NextRequest): boolean {
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const authed = isAuthed(req);
-  const isDashboard =
-    pathname === "/dashboard" || pathname.includes("/dashboard/");
+  const isProtectedRoute =
+    pathname === "/dashboard" ||
+    pathname.includes("/dashboard/") ||
+    pathname === "/profile" ||
+    pathname.includes("/profile/");
   const isAuthPage = pathname === "/login" || pathname === "/register";
 
-  if (isDashboard && !authed) {
+  if (isProtectedRoute && !authed) {
     const url = req.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("next", pathname);
@@ -30,6 +33,5 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/login", "/register"],
+  matcher: ["/dashboard/:path*", "/profile/:path*", "/login", "/register"],
 };
-    

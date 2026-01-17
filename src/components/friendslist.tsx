@@ -9,12 +9,12 @@ import DialogTitle from "@/components/DialogTitle";
 import { FetchStatus, User } from "@/types/user";
 import {
   AlertCircle,
+  Award,
   Cake,
   Calendar,
   Check,
   Loader2,
   Mail,
-  MessageCircle,
   Plus,
   RefreshCw,
   Send,
@@ -35,7 +35,7 @@ const SquadModal = ({
 }) => {
   const [isAdding, setIsAdding] = useState(false);
   const [inviteStatus, setInviteStatus] = useState<"idle" | "sending" | "sent">(
-    "idle"
+    "idle",
   );
   const [inputValue, setInputValue] = useState("");
   const [users, setUsers] = useState<User[]>([]);
@@ -102,11 +102,23 @@ const SquadModal = ({
       setErrorMessage(
         error instanceof Error
           ? error.message
-          : "Failed to load users. Please try again."
+          : "Failed to load users. Please try again.",
       );
     }
   };
-
+  const handleSendReq = async (id: string) => {
+    try {
+      setFetchStatus("loading");
+      const send = await chatApi.sendFriendRequest(id);
+      setFetchStatus("success");
+      await fetchUsers();
+    } catch (error) {
+      console.error(error);
+      setErrorMessage(
+        error instanceof Error ? error.message : "Error Try again",
+      );
+    }
+  };
   useEffect(() => {
     if (isOpen) {
       const loadUsers = async () => {
@@ -311,6 +323,9 @@ const SquadModal = ({
 
                   <div className="absolute right-3 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
+                      onClick={async () => {
+                        await handleSendReq(user.id);
+                      }}
                       className="p-2 rounded-full bg-black dark:bg-white text-white dark:text-black shadow-lg hover:scale-110 transition-transform"
                       title="Send Request"
                     >

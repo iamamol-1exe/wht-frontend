@@ -19,7 +19,7 @@ export default function Home() {
   return (
     <div className="relative min-h-screen">
       <BackgroundBeams className="opacity-40" />
-
+    
       <div className="relative mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-10 p-4">
         <header className="flex items-center justify-between gap-3 py-4">
           <div className="text-lg font-semibold">WhaTube</div>
