@@ -42,6 +42,7 @@ import { chatApi } from "@/api/chat.api";
 import { UserData } from "@/types/user";
 import NotificationModal from "@/components/NotificationModal";
 import { socket } from "@/utils/socket";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 
 const STICKERS: Array<{ label: string; value: string }> = [
   { label: "Wave", value: "👋" },
@@ -79,7 +80,7 @@ export default function DashboardPage() {
   const [activeChatId, setActiveChatId] = useState<string>("c_1");
   const activeChat = useMemo(
     () => friends.find((c) => c.id === activeChatId) ?? friends[0],
-    [activeChatId, friends]
+    [activeChatId, friends],
   );
 
   const [draft, setDraft] = useState<string>("");
@@ -156,7 +157,7 @@ export default function DashboardPage() {
     return friends.filter(
       (c) =>
         c.title.toLowerCase().includes(q) ||
-        (c.subtitle ?? "").toLowerCase().includes(q)
+        (c.subtitle ?? "").toLowerCase().includes(q),
     );
   }, [friends, search]);
 
@@ -199,7 +200,7 @@ export default function DashboardPage() {
         [activeChatId]: [...(prev[activeChatId] ?? []), msg],
       }));
     },
-    [activeChatId]
+    [activeChatId],
   );
 
   const send = useCallback(() => {
@@ -282,7 +283,7 @@ export default function DashboardPage() {
       setActiveChatId(id);
       setStartChatWith("");
     },
-    [startChatWith]
+    [startChatWith],
   );
 
   const { setTheme } = useTheme();
@@ -341,232 +342,235 @@ export default function DashboardPage() {
   }, [currentUser]);
 
   return (
-    <div className="relative h-screen overflow-hidden bg-background">
-      <div className="relative flex h-full w-full">
-        <div className="hidden h-full w-20 border-r bg-card/50 backdrop-blur-sm lg:flex lg:flex-col lg:items-center lg:gap-4 lg:py-4">
-          <div className="flex size-12 items-center justify-center rounded-xl bg-primary text-primary-foreground font-bold text-lg">
-            W
-          </div>
-          <div className="flex-1" />
-          <Button
-            variant="ghost"
-            size="icon"
-            className="rounded-xl"
-            onClick={() => setIsSquadModalOpen(true)}
-          >
-            <UserPlus className="size-5" />
-          </Button>
-          <Button variant="ghost" size="icon" className="rounded-xl">
-            <Settings className="size-5" />
-          </Button>
-          <Link href="/profile">
-            <div className="flex size-10 items-center justify-center rounded-full bg-gradient-to-br from-purple-500 to-pink-500 text-white font-semibold text-sm cursor-pointer hover:scale-110 transition-transform">
-              {currentUser?.name?.[0]?.toUpperCase() || "U"}
+    <ProtectedRoute>
+      {" "}
+      <div className="relative h-screen overflow-hidden bg-background">
+        <div className="relative flex h-full w-full">
+          <div className="hidden h-full w-20 border-r bg-card/50 backdrop-blur-sm lg:flex lg:flex-col lg:items-center lg:gap-4 lg:py-4">
+            <div className="flex size-12 items-center justify-center rounded-xl bg-primary text-primary-foreground font-bold text-lg">
+              W
             </div>
-          </Link>
-        </div>
-
-        {/* Chat List */}
-        <div className="flex h-full w-full flex-col border-r bg-card/30 backdrop-blur-sm md:w-96">
-          <div className="flex h-16 shrink-0 items-center justify-between border-b px-4">
-            <h1 className="text-xl font-bold">WhaTube</h1>
-            <div className="flex items-center gap-1">
-              <Button variant="ghost" size="icon" className="size-9">
-                <Search className="size-4" />
-              </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="size-9">
-                    <MoreVertical className="size-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem>
-                    <Settings className="mr-2 size-4" />
-                    Settings
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={(e: React.FormEvent) => {
-                      e.stopPropagation();
-                      setIsNotification(true);
-                    }}
-                  >
-                    <Bell className="mr-2 size-4" />
-                    Notifications
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuSub>
-                    <DropdownMenuSubTrigger>
-                      <Moon className="mr-2 size-4" />
-                      Theme
-                    </DropdownMenuSubTrigger>
-                    <DropdownMenuSubContent>
-                      <DropdownMenuItem onClick={() => setTheme("light")}>
-                        Light
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setTheme("dark")}>
-                        Dark
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setTheme("system")}>
-                        System
-                      </DropdownMenuItem>
-                    </DropdownMenuSubContent>
-                  </DropdownMenuSub>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
+            <div className="flex-1" />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="rounded-xl"
+              onClick={() => setIsSquadModalOpen(true)}
+            >
+              <UserPlus className="size-5" />
+            </Button>
+            <Button variant="ghost" size="icon" className="rounded-xl">
+              <Settings className="size-5" />
+            </Button>
+            <Link href="/profile">
+              <div className="flex size-10 items-center justify-center rounded-full bg-gradient-to-br from-purple-500 to-pink-500 text-white font-semibold text-sm cursor-pointer hover:scale-110 transition-transform">
+                {currentUser?.name?.[0]?.toUpperCase() || "U"}
+              </div>
+            </Link>
           </div>
 
-          <div className="shrink-0 border-b p-3">
-            <Input
-              placeholder="Search chats..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="h-9"
-            />
-          </div>
-
-          <div className="min-h-0 flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-            {filteredChats.map((c) => {
-              const active = c.id === activeChatId;
-              return (
-                <button
-                  key={c.id}
-                  type="button"
-                  onClick={() => setActiveChatId(c.id)}
-                  className={cn(
-                    "flex w-full items-center gap-3 border-b px-4 py-3 text-left transition-colors hover:bg-accent/50",
-                    active && "bg-accent"
-                  )}
-                >
-                  <div className="relative">
-                    <div
-                      className={cn(
-                        "flex size-12 items-center justify-center rounded-full font-semibold text-sm",
-                        active
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-gradient-to-br from-blue-500 to-purple-500 text-white"
-                      )}
+          {/* Chat List */}
+          <div className="flex h-full w-full flex-col border-r bg-card/30 backdrop-blur-sm md:w-96">
+            <div className="flex h-16 shrink-0 items-center justify-between border-b px-4">
+              <h1 className="text-xl font-bold">WhaTube</h1>
+              <div className="flex items-center gap-1">
+                <Button variant="ghost" size="icon" className="size-9">
+                  <Search className="size-4" />
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="size-9">
+                      <MoreVertical className="size-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem>
+                      <Settings className="mr-2 size-4" />
+                      Settings
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={(e: React.FormEvent) => {
+                        e.stopPropagation();
+                        setIsNotification(true);
+                      }}
                     >
-                      {c.avatar}
-                    </div>
-                    {c.isOnline && (
-                      <div className="absolute bottom-0 right-0 size-3.5 rounded-full border-2 border-background bg-green-500" />
+                      <Bell className="mr-2 size-4" />
+                      Notifications
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuSub>
+                      <DropdownMenuSubTrigger>
+                        <Moon className="mr-2 size-4" />
+                        Theme
+                      </DropdownMenuSubTrigger>
+                      <DropdownMenuSubContent>
+                        <DropdownMenuItem onClick={() => setTheme("light")}>
+                          Light
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setTheme("dark")}>
+                          Dark
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setTheme("system")}>
+                          System
+                        </DropdownMenuItem>
+                      </DropdownMenuSubContent>
+                    </DropdownMenuSub>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
+
+            <div className="shrink-0 border-b p-3">
+              <Input
+                placeholder="Search chats..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="h-9"
+              />
+            </div>
+
+            <div className="min-h-0 flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+              {filteredChats.map((c) => {
+                const active = c.id === activeChatId;
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => setActiveChatId(c.id)}
+                    className={cn(
+                      "flex w-full items-center gap-3 border-b px-4 py-3 text-left transition-colors hover:bg-accent/50",
+                      active && "bg-accent",
                     )}
-                    {c.isPinned && (
-                      <div className="absolute -right-1 -top-1">
-                        <Pin className="size-3.5 fill-primary text-primary" />
+                  >
+                    <div className="relative">
+                      <div
+                        className={cn(
+                          "flex size-12 items-center justify-center rounded-full font-semibold text-sm",
+                          active
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-gradient-to-br from-blue-500 to-purple-500 text-white",
+                        )}
+                      >
+                        {c.avatar}
                       </div>
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="truncate font-semibold text-sm">
-                        {c.title}
-                      </div>
-                      <div className="shrink-0 text-xs text-muted-foreground">
-                        {c.lastActiveAt}
-                      </div>
-                    </div>
-                    <div className="mt-0.5 flex items-center justify-between gap-2">
-                      <div className="truncate text-sm text-muted-foreground">
-                        {c.lastMessage ?? c.subtitle ?? ""}
-                      </div>
-                      {c.unreadCount && c.unreadCount > 0 && (
-                        <div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-semibold text-primary-foreground">
-                          {c.unreadCount}
+                      {c.isOnline && (
+                        <div className="absolute bottom-0 right-0 size-3.5 rounded-full border-2 border-background bg-green-500" />
+                      )}
+                      {c.isPinned && (
+                        <div className="absolute -right-1 -top-1">
+                          <Pin className="size-3.5 fill-primary text-primary" />
                         </div>
                       )}
                     </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="truncate font-semibold text-sm">
+                          {c.title}
+                        </div>
+                        <div className="shrink-0 text-xs text-muted-foreground">
+                          {c.lastActiveAt}
+                        </div>
+                      </div>
+                      <div className="mt-0.5 flex items-center justify-between gap-2">
+                        <div className="truncate text-sm text-muted-foreground">
+                          {c.lastMessage ?? c.subtitle ?? ""}
+                        </div>
+                        {c.unreadCount && c.unreadCount > 0 && (
+                          <div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-semibold text-primary-foreground">
+                            {c.unreadCount}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Main Chat Area */}
+          <div className="flex h-full flex-1 flex-col bg-background/50 backdrop-blur-sm">
+            {/* Chat Header */}
+            <div className="flex h-16 shrink-0 items-center justify-between border-b bg-card/50 px-4 backdrop-blur-sm">
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <div className="flex size-10 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-500 font-semibold text-white text-sm">
+                    {activeChat?.avatar}
                   </div>
-                </button>
-              );
-            })}
+                  {activeChat?.isOnline && (
+                    <div className="absolute bottom-0 right-0 size-3 rounded-full border-2 border-background bg-green-500" />
+                  )}
+                </div>
+                <div>
+                  <div className="font-semibold text-sm">
+                    {activeChat?.title ?? "Select a chat"}
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Lock className="size-3" />
+                    <span>{activeChat?.subtitle ?? "Encrypted"}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-1">
+                <Button variant="ghost" size="icon" className="size-9">
+                  <Phone className="size-4" />
+                </Button>
+                <Button variant="ghost" size="icon" className="size-9">
+                  <Video className="size-4" />
+                </Button>
+                <Button variant="ghost" size="icon" className="size-9">
+                  <Search className="size-4" />
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="size-9">
+                      <MoreVertical className="size-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem>View Profile</DropdownMenuItem>
+                    <DropdownMenuItem>Mute Notifications</DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem>Clear History</DropdownMenuItem>
+                    <DropdownMenuItem className="text-destructive">
+                      Delete Chat
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
+
+            {/* Messages */}
+            <Messages
+              messagesEndRef={messagesEndRef}
+              activeMessages={activeMessages}
+            />
+
+            {/* Message Input */}
+            <MessageInput
+              fileInputRef={fileInputRef}
+              onPickFiles={onPickFiles}
+              pendingFiles={pendingFiles}
+              removePendingFile={removePendingFile}
+              STICKERS={STICKERS}
+              sendSticker={sendSticker}
+              send={send}
+              draft={draft}
+              setDraft={setDraft}
+              openFilePicker={openFilePicker}
+            />
           </div>
         </div>
 
-        {/* Main Chat Area */}
-        <div className="flex h-full flex-1 flex-col bg-background/50 backdrop-blur-sm">
-          {/* Chat Header */}
-          <div className="flex h-16 shrink-0 items-center justify-between border-b bg-card/50 px-4 backdrop-blur-sm">
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <div className="flex size-10 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-500 font-semibold text-white text-sm">
-                  {activeChat?.avatar}
-                </div>
-                {activeChat?.isOnline && (
-                  <div className="absolute bottom-0 right-0 size-3 rounded-full border-2 border-background bg-green-500" />
-                )}
-              </div>
-              <div>
-                <div className="font-semibold text-sm">
-                  {activeChat?.title ?? "Select a chat"}
-                </div>
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <Lock className="size-3" />
-                  <span>{activeChat?.subtitle ?? "Encrypted"}</span>
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-1">
-              <Button variant="ghost" size="icon" className="size-9">
-                <Phone className="size-4" />
-              </Button>
-              <Button variant="ghost" size="icon" className="size-9">
-                <Video className="size-4" />
-              </Button>
-              <Button variant="ghost" size="icon" className="size-9">
-                <Search className="size-4" />
-              </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="size-9">
-                    <MoreVertical className="size-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem>View Profile</DropdownMenuItem>
-                  <DropdownMenuItem>Mute Notifications</DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem>Clear History</DropdownMenuItem>
-                  <DropdownMenuItem className="text-destructive">
-                    Delete Chat
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </div>
-
-          {/* Messages */}
-          <Messages
-            messagesEndRef={messagesEndRef}
-            activeMessages={activeMessages}
-          />
-
-          {/* Message Input */}
-          <MessageInput
-            fileInputRef={fileInputRef}
-            onPickFiles={onPickFiles}
-            pendingFiles={pendingFiles}
-            removePendingFile={removePendingFile}
-            STICKERS={STICKERS}
-            sendSticker={sendSticker}
-            send={send}
-            draft={draft}
-            setDraft={setDraft}
-            openFilePicker={openFilePicker}
-          />
-        </div>
+        <SquadModal
+          isOpen={isSquadModalOpen}
+          onOpenChange={setIsSquadModalOpen}
+        />
+        <NotificationModal
+          isOpen={isNotification}
+          onOpenChange={setIsNotification}
+        />
       </div>
-
-      <SquadModal
-        isOpen={isSquadModalOpen}
-        onOpenChange={setIsSquadModalOpen}
-      />
-      <NotificationModal
-        isOpen={isNotification}
-        onOpenChange={setIsNotification}
-      />
-    </div>
+    </ProtectedRoute>
   );
 }

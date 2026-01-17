@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@radix-ui/react-label";
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import { setTokens } from "@/utils/axios.config";
 
 const Login = () => {
   const router = useRouter();
@@ -29,19 +30,25 @@ const Login = () => {
       setlaoding(true);
       setError("");
       setSuccess("");
-      const data = await AuthApi.login(email, password);
-      console.log(data);
-      setSuccess("Login successful! Redirecting to dashboard...");
+      const data = (await AuthApi.login(email, password)) as {
+        refreshToken: string;
+        accessToken: string;
+      };
+      const { refreshToken, accessToken } = data;
 
+      setTokens(accessToken, refreshToken);
+
+      setSuccess("Login successful! Redirecting to dashboard...");
       setTimeout(() => {
-        window.location.href = "/dashboard";
-      }, 1000);
+        router.push("/dashboard");
+        setlaoding(false);
+      }, 1500);
     } catch (error) {
       console.error(error);
       setError(
         error instanceof Error
           ? error.message
-          : "Login failed. Please try again."
+          : "Login failed. Please try again.",
       );
       setlaoding(false);
     }
