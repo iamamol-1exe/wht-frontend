@@ -1,10 +1,18 @@
-import { io } from "socket.io-client";
+import { io, Socket } from "socket.io-client";
 
-const url = process.env.NEXT_PUBLIC_BASE_SOCKET_URL || "http://localhost:3010";
+let socket: Socket | null = null;
 
-export const socket = io(url, {
-  withCredentials: true,
-  transports: ["websocket", "polling"],
-  reconnectionAttempts: 5,
-  reconnectionDelay: 1000,
-});
+export const getSocket = () => {
+  if (typeof window === "undefined") return null;
+
+  if (!socket) {
+    const token = localStorage.getItem("accessToken");
+
+    socket = io(process.env.NEXT_PUBLIC_BASE_SOCKET_URL!, {
+      auth: { token },
+      transports: ["websocket"],
+    });
+  }
+
+  return socket;
+};

@@ -67,7 +67,27 @@ export const chatApi = {
   fetchFriendReq: async function () {
     try {
       const { data } = await apiClient.get("/users/fetch-friend-req");
-      return data;  
+      return data;
+    } catch (error) {
+      throw new Error(handleApiError(error as ApiError));
+    }
+  },
+  acceptFriendReq: async function (id: string) {
+    try {
+      const data = await apiClient.patch("/users/acceptFriendRequest", {
+        requester: id,
+      });
+      return data;
+    } catch (error) {
+      throw new Error(handleApiError(error as ApiError));
+    }
+  },
+  rejectFriendReq: async function (id: string) {
+    try {
+      const data = await apiClient.patch("/users/rejectFriendRequest", {
+        requester: id,
+      });
+      return data;
     } catch (error) {
       throw new Error(handleApiError(error as ApiError));
     }

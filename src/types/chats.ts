@@ -13,7 +13,7 @@ export type Friends = {
 export type Message =
   | {
       id: string;
-      from: "me" | "them";
+      from: string;
       kind: "text";
       text: string;
       at: string;
@@ -22,7 +22,7 @@ export type Message =
     }
   | {
       id: string;
-      from: "me" | "them";
+      from: string;
       kind: "image";
       alt: string;
       objectUrl: string;
@@ -32,7 +32,7 @@ export type Message =
     }
   | {
       id: string;
-      from: "me" | "them";
+      from: string;
       kind: "sticker";
       sticker: string;
       at: string;

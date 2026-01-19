@@ -34,15 +34,17 @@ import {
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import MessageInput from "@/components/messageInput";
-import Messages from "@/components/messges";
+import Messages from "@/components/messages";
 import { useTheme } from "next-themes";
 import { Friends, Message } from "@/types/chats";
 import SquadModal from "@/components/friendslist";
 import { chatApi } from "@/api/chat.api";
 import { UserData } from "@/types/user";
 import NotificationModal from "@/components/NotificationModal";
-import { socket } from "@/utils/socket";
+
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { getSocket } from "@/utils/socket";
+import { Socket } from "socket.io-client";
 
 const STICKERS: Array<{ label: string; value: string }> = [
   { label: "Wave", value: "👋" },
@@ -67,6 +69,7 @@ function makeId(prefix: string): string {
 }
 
 export default function DashboardPage() {
+  const socket: Socket | null = getSocket();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
@@ -77,80 +80,26 @@ export default function DashboardPage() {
 
   const [friends, setFriends] = useState<Friends[]>(() => []);
 
-  const [activeChatId, setActiveChatId] = useState<string>("c_1");
+  const [activeChatId, setActiveChatId] = useState<string>("");
   const activeChat = useMemo(
-    () => friends.find((c) => c.id === activeChatId) ?? friends[0],
+    () => friends.find((c) => c.id === activeChatId),
     [activeChatId, friends],
   );
 
   const [draft, setDraft] = useState<string>("");
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [isSquadModalOpen, setIsSquadModalOpen] = useState(false);
-  const [messages, setMessages] = useState<Record<string, Message[]>>(() => ({
-    c_1: [
-      {
-        id: "m_1",
-        from: "them",
-        kind: "text",
-        text: "Hey! This chat is end-to-end encrypted.",
-        at: "09:14",
-        senderName: "Aarav Sharma",
-        senderAvatar: "AS",
-      },
-      {
-        id: "m_2",
-        from: "me",
-        kind: "text",
-        text: "Nice. I can also share images and stickers here.",
-        at: "09:15",
-        senderName: "You",
-        senderAvatar: "YU",
-      },
-      {
-        id: "m_3",
-        from: "them",
-        kind: "text",
-        text: "That's awesome! The UI looks really clean.",
-        at: "09:15",
-        senderName: "Aarav Sharma",
-        senderAvatar: "AS",
-      },
-      {
-        id: "m_4",
-        from: "me",
-        kind: "text",
-        text: "Thanks! Working on making it even better.",
-        at: "09:16",
-        senderName: "You",
-        senderAvatar: "YU",
-      },
-    ],
-    c_2: [
-      {
-        id: "m_5",
-        from: "them",
-        kind: "text",
-        text: "Reminder: standup in 10 mins.",
-        at: "08:58",
-        senderName: "Dev Team",
-        senderAvatar: "DT",
-      },
-    ],
-    c_3: [
-      {
-        id: "m_6",
-        from: "them",
-        kind: "text",
-        text: "How can we help you today?",
-        at: "Yesterday",
-        senderName: "Support",
-        senderAvatar: "SU",
-      },
-    ],
-  }));
+  const [messages, setMessages] = useState<Record<string, Message[]>>(
+    () => ({}),
+  );
+
+  useEffect(() => {
+    console.log(messages);
+    console.log(activeChatId);
+  }, [messages, activeChatId]);
 
   const activeMessages = messages[activeChatId] ?? [];
-
+  useEffect(() => {}, [messages]);
   const filteredChats = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return friends;
@@ -203,7 +152,7 @@ export default function DashboardPage() {
     [activeChatId],
   );
 
-  const send = useCallback(() => {
+  const send = useCallback(async () => {
     if (!activeChatId) return;
     const text = draft.trim();
     const hasText = text.length > 0;
@@ -212,39 +161,74 @@ export default function DashboardPage() {
 
     const nextMessages: Message[] = [];
 
+    const message: Message = {
+      id: makeId("msg"),
+      from: currentUser?._id || "me",
+      kind: "text",
+      text,
+      at: nowTime(),
+      senderName: currentUser?.username || "You",
+      senderAvatar: currentUser?.name?.[0]?.toUpperCase() || "U",
+    };
     if (hasText) {
-      nextMessages.push({
-        id: makeId("tx"),
-        from: "me",
-        kind: "text",
-        text,
-        at: nowTime(),
-        senderName: "You",
-        senderAvatar: "YU",
-      });
+      nextMessages.push(message);
     }
 
+    // Add image messages
     for (const file of pendingFiles) {
       const objectUrl = URL.createObjectURL(file);
       nextMessages.push({
         id: makeId("im"),
-        from: "me",
+        from: currentUser?._id || "me",
         kind: "image",
         objectUrl,
         alt: file.name,
         at: nowTime(),
-        senderName: "You",
-        senderAvatar: "YU",
+        senderName: currentUser?.username || "You",
+        senderAvatar: currentUser?.name?.[0]?.toUpperCase() || "U",
       });
     }
 
+    // Update local state immediately for instant UI feedback
     setMessages((prev) => ({
       ...prev,
       [activeChatId]: [...(prev[activeChatId] ?? []), ...nextMessages],
     }));
+
+    // Update the friend's last message in the chat list
+    setFriends((prevFriends) =>
+      prevFriends.map((friend) => {
+        if (friend.id === activeChatId) {
+          return {
+            ...friend,
+            lastMessage: hasText
+              ? text.length > 50
+                ? text.substring(0, 50) + "..."
+                : text
+              : "📷 Image",
+            lastActiveAt: nowTime(),
+          };
+        }
+        return friend;
+      }),
+    );
+
+    // Clear inputs immediately
     setDraft("");
     setPendingFiles([]);
-  }, [activeChatId, draft, pendingFiles]);
+
+    if (!socket) {
+      console.error("Socket is not initialized");
+      return;
+    }
+
+    socket.emit("personalMessage", {
+      to: activeChatId,
+      messages: hasText ? text : "",
+      senderName: currentUser?.name,
+      senderAvatar: currentUser?.name?.[0]?.toUpperCase() || "U",
+    });
+  }, [activeChatId, draft, pendingFiles, currentUser, socket]);
 
   // Cleanup object URLs when leaving page.
   useEffect(() => {
@@ -257,34 +241,6 @@ export default function DashboardPage() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const startChat = useCallback(
-    (e: React.FormEvent) => {
-      e.preventDefault();
-      const target = startChatWith.trim();
-      if (!target) return;
-      const id = makeId("c");
-      const initials = target
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2);
-      const chat: Friends = {
-        id,
-        title: target,
-        subtitle: "New chat",
-        lastActiveAt: "now",
-        avatar: initials,
-        isOnline: false,
-      };
-      setFriends((prev) => [chat, ...prev]);
-      setMessages((prev) => ({ ...prev, [id]: [] }));
-      setActiveChatId(id);
-      setStartChatWith("");
-    },
-    [startChatWith],
-  );
 
   const { setTheme } = useTheme();
 
@@ -317,7 +273,6 @@ export default function DashboardPage() {
           unreadCount: 0,
         };
       });
-      console.log(Friend);
       setFriends(Friend);
     } catch (error) {
       console.error(error);
@@ -328,18 +283,80 @@ export default function DashboardPage() {
     getFriends();
   }, []);
 
+  //initail connect to server for socket
   useEffect(() => {
+    if (!socket) return;
     if (currentUser) {
       socket.emit("join", { userId: currentUser._id });
-      console.log("try");
     }
+
     socket.on("notification", (data) => {
       console.log("notification", data);
     });
+
+    socket.on("receiveMessage", (data) => {
+      console.log("message received", data);
+
+      const message: Message = {
+        id: makeId("msg"),
+        from: data?.from || "unknown",
+        kind: "text",
+        text: data.messages,
+        at: nowTime(),
+        senderName: data.senderName || "Unknown",
+        senderAvatar: data.senderAvatar || "U",
+      };
+
+      // Update messages state with the sender's ID as the key
+      setMessages((prev) => ({
+        ...prev,
+        [data?.from]: [...(prev[data?.from] ?? []), message],
+      }));
+
+      // Update friends list to show last message and increment unread count
+      // Only increment if the message is not from the currently active chat
+      setFriends((prevFriends) =>
+        prevFriends.map((friend) => {
+          if (friend.id === data?.from) {
+            return {
+              ...friend,
+              lastMessage:
+                data.messages.length > 50
+                  ? data.messages.substring(0, 50) + "..."
+                  : data.messages,
+              lastActiveAt: nowTime(),
+              unreadCount:
+                friend.id !== activeChatId
+                  ? (friend.unreadCount || 0) + 1
+                  : friend.unreadCount || 0,
+            };
+          }
+          return friend;
+        }),
+      );
+    });
+
     return () => {
       socket.off("notification");
+      socket.off("receiveMessage");
     };
-  }, [currentUser]);
+  }, [currentUser, socket, activeChatId]);
+
+  useEffect(() => {
+    if (activeChatId) {
+      setFriends((prevFriends) =>
+        prevFriends.map((friend) => {
+          if (friend.id === activeChatId) {
+            return {
+              ...friend,
+              unreadCount: 0,
+            };
+          }
+          return friend;
+        }),
+      );
+    }
+  }, [activeChatId]);
 
   return (
     <ProtectedRoute>
@@ -489,77 +506,96 @@ export default function DashboardPage() {
           </div>
 
           {/* Main Chat Area */}
-          <div className="flex h-full flex-1 flex-col bg-background/50 backdrop-blur-sm">
-            {/* Chat Header */}
-            <div className="flex h-16 shrink-0 items-center justify-between border-b bg-card/50 px-4 backdrop-blur-sm">
-              <div className="flex items-center gap-3">
-                <div className="relative">
-                  <div className="flex size-10 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-500 font-semibold text-white text-sm">
-                    {activeChat?.avatar}
+          {activeChat ? (
+            <div className="flex h-full flex-1 flex-col bg-background/50 backdrop-blur-sm">
+              {/* Chat Header */}
+              <div className="flex h-16 shrink-0 items-center justify-between border-b bg-card/50 px-4 backdrop-blur-sm">
+                <div className="flex items-center gap-3">
+                  <div className="relative">
+                    <div className="flex size-10 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-500 font-semibold text-white text-sm">
+                      {activeChat?.avatar}
+                    </div>
+                    {activeChat?.isOnline && (
+                      <div className="absolute bottom-0 right-0 size-3 rounded-full border-2 border-background bg-green-500" />
+                    )}
                   </div>
-                  {activeChat?.isOnline && (
-                    <div className="absolute bottom-0 right-0 size-3 rounded-full border-2 border-background bg-green-500" />
-                  )}
+                  <div>
+                    <div className="font-semibold text-sm">
+                      {activeChat?.title ?? "Select a chat"}
+                    </div>
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Lock className="size-3" />
+                      <span>{activeChat?.subtitle ?? "Encrypted"}</span>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <div className="font-semibold text-sm">
-                    {activeChat?.title ?? "Select a chat"}
-                  </div>
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <Lock className="size-3" />
-                    <span>{activeChat?.subtitle ?? "Encrypted"}</span>
-                  </div>
+                <div className="flex items-center gap-1">
+                  <Button variant="ghost" size="icon" className="size-9">
+                    <Phone className="size-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="size-9">
+                    <Video className="size-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="size-9">
+                    <Search className="size-4" />
+                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="size-9">
+                        <MoreVertical className="size-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem>View Profile</DropdownMenuItem>
+                      <DropdownMenuItem>Mute Notifications</DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem>Clear History</DropdownMenuItem>
+                      <DropdownMenuItem className="text-destructive">
+                        Delete Chat
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
-              <div className="flex items-center gap-1">
-                <Button variant="ghost" size="icon" className="size-9">
-                  <Phone className="size-4" />
-                </Button>
-                <Button variant="ghost" size="icon" className="size-9">
-                  <Video className="size-4" />
-                </Button>
-                <Button variant="ghost" size="icon" className="size-9">
-                  <Search className="size-4" />
-                </Button>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="size-9">
-                      <MoreVertical className="size-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem>View Profile</DropdownMenuItem>
-                    <DropdownMenuItem>Mute Notifications</DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem>Clear History</DropdownMenuItem>
-                    <DropdownMenuItem className="text-destructive">
-                      Delete Chat
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+
+              {/* Messages */}
+              <Messages
+                messagesEndRef={messagesEndRef}
+                activeMessages={activeMessages}
+              />
+
+              {/* Message Input */}
+              <MessageInput
+                fileInputRef={fileInputRef}
+                onPickFiles={onPickFiles}
+                pendingFiles={pendingFiles}
+                removePendingFile={removePendingFile}
+                STICKERS={STICKERS}
+                sendSticker={sendSticker}
+                send={send}
+                draft={draft}
+                setDraft={setDraft}
+                openFilePicker={openFilePicker}
+              />
+            </div>
+          ) : (
+            <div className="flex h-full flex-1 flex-col bg-background/50 backdrop-blur-sm">
+              <div className="flex h-full items-center justify-center">
+                <div className="text-center">
+                  <div className="mb-3 flex size-16 items-center justify-center rounded-full bg-primary/10 mx-auto">
+                    <Lock className="size-8 text-primary" />
+                  </div>
+                  <h3 className="mb-2 font-semibold text-lg">
+                    End-to-End Encrypted
+                  </h3>
+                  <p className="max-w-md text-muted-foreground text-sm">
+                    Messages are secured with end-to-end encryption. Start the
+                    conversation now.
+                  </p>
+                </div>
               </div>
             </div>
-
-            {/* Messages */}
-            <Messages
-              messagesEndRef={messagesEndRef}
-              activeMessages={activeMessages}
-            />
-
-            {/* Message Input */}
-            <MessageInput
-              fileInputRef={fileInputRef}
-              onPickFiles={onPickFiles}
-              pendingFiles={pendingFiles}
-              removePendingFile={removePendingFile}
-              STICKERS={STICKERS}
-              sendSticker={sendSticker}
-              send={send}
-              draft={draft}
-              setDraft={setDraft}
-              openFilePicker={openFilePicker}
-            />
-          </div>
+          )}
         </div>
 
         <SquadModal
