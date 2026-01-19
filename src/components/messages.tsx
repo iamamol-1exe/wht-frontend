@@ -6,7 +6,7 @@ import NextImage from "next/image";
 export type IMessage =
   | {
       id: string;
-      from: "me" | "them";
+      from: string;
       kind: "text";
       text: string;
       at: string;
@@ -15,7 +15,7 @@ export type IMessage =
     }
   | {
       id: string;
-      from: "me" | "them";
+      from: string;
       kind: "image";
       alt: string;
       objectUrl: string;
@@ -25,7 +25,7 @@ export type IMessage =
     }
   | {
       id: string;
-      from: "me" | "them";
+      from: string;
       kind: "sticker";
       sticker: string;
       at: string;
@@ -68,7 +68,7 @@ const Messages = ({
                 className={cn(
                   "flex gap-2",
                   mine ? "flex-row-reverse" : "flex-row",
-                  !showAvatar && !mine && "ml-10"
+                  !showAvatar && !mine && "ml-10",
                 )}
               >
                 {!mine && showAvatar && (
@@ -81,7 +81,7 @@ const Messages = ({
                 <div
                   className={cn(
                     "group relative max-w-[65%]",
-                    mine && "flex flex-col items-end"
+                    mine && "flex flex-col items-end",
                   )}
                 >
                   {!mine && showAvatar && (
@@ -94,7 +94,7 @@ const Messages = ({
                       "rounded-2xl px-4 py-2 shadow-sm",
                       mine
                         ? "rounded-br-md bg-primary text-primary-foreground"
-                        : "rounded-bl-md bg-card"
+                        : "rounded-bl-md bg-card",
                     )}
                   >
                     {m.kind === "text" && (
@@ -121,7 +121,7 @@ const Messages = ({
                             "text-xs",
                             mine
                               ? "text-primary-foreground/70"
-                              : "text-muted-foreground"
+                              : "text-muted-foreground",
                           )}
                         >
                           {m.alt}
@@ -132,7 +132,7 @@ const Messages = ({
                   <div
                     className={cn(
                       "mt-1 px-1 text-[11px] text-muted-foreground",
-                      mine && "text-right"
+                      mine && "text-right",
                     )}
                   >
                     {m.at}
