@@ -74,7 +74,7 @@ export default function DashboardPage() {
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   const [search, setSearch] = useState("");
-  const [startChatWith, setStartChatWith] = useState("");
+  // const [startChatWith, setStartChatWith] = useState("");
   const [currentUser, setCurrentUser] = useState<UserData | null>(null);
   const [isNotification, setIsNotification] = useState<boolean>(false);
 
@@ -230,7 +230,6 @@ export default function DashboardPage() {
     });
   }, [activeChatId, draft, pendingFiles, currentUser, socket]);
 
-  // Cleanup object URLs when leaving page.
   useEffect(() => {
     return () => {
       for (const chatId of Object.keys(messages)) {
@@ -562,6 +561,7 @@ export default function DashboardPage() {
               <Messages
                 messagesEndRef={messagesEndRef}
                 activeMessages={activeMessages}
+                currentUser={currentUser}
               />
 
               {/* Message Input */}

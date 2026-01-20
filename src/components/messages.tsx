@@ -36,6 +36,7 @@ export type IMessage =
 const Messages = ({
   messagesEndRef,
   activeMessages,
+  currentUser,
 }: {
   messagesEndRef: React.RefObject<HTMLDivElement | null>;
   activeMessages: IMessage[];
@@ -56,9 +57,9 @@ const Messages = ({
           </div>
         </div>
       ) : (
-        <div className="mx-auto max-w-4xl space-y-4">
+        <div className="space-y-4">
           {activeMessages.map((m, idx) => {
-            const mine = m.from === "me";
+            const mine = m.from === currentUser?._id;
             const prevMsg = idx > 0 ? activeMessages[idx - 1] : null;
             const showAvatar = !mine && (!prevMsg || prevMsg.from !== m.from);
 
@@ -76,7 +77,7 @@ const Messages = ({
                     {m.senderAvatar}
                   </div>
                 )}
-                {!mine && !showAvatar && <div className="w-8 shrink-0" />}
+                {/* {!mine && !showAvatar && <div className="w-8 shrink-0" />} */}
 
                 <div
                   className={cn(
